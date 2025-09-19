@@ -72,10 +72,14 @@ cd api/ && python -m flake8 . --max-line-length=100
 ```
 
 ### Local to Remote Deployment
+**IMPORTANT**: Never run deploy.sh automatically - it requires password input. Always provide the command for user to run manually.
+
 ```bash
 ./deploy.sh                     # Build locally, deploy to remote server
 ./deploy.sh ubuntu@server.com   # Deploy to specific server
 ```
+
+**Build Signature**: The frontend displays a build signature at the bottom (format: "🔧 Build: v1.0.0 @ 2025-01-19 15:30:45 CST") to verify deployment updates and cache busting. Version number can be updated in `frontend/VERSION` file.
 
 ## Key Files and Structure
 

@@ -39,7 +39,14 @@ done
 if [[ "$DEPLOY_TYPE" == "web" || "$DEPLOY_TYPE" == "full" ]]; then
   echo "🔨 Building Flutter Web locally..."
   cd "$LOCAL_FRONTEND_DIR"
-  flutter build web --release
+
+  # Generate build timestamp and version for deployment tracking
+  BUILD_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S %Z')
+  VERSION=$(cat VERSION 2>/dev/null || echo "1.0.0")
+  BUILD_SIGNATURE="v$VERSION @ $BUILD_TIMESTAMP"
+  echo "📅 Build signature: $BUILD_SIGNATURE"
+
+  flutter build web --release --dart-define=BUILD_TIMESTAMP="$BUILD_SIGNATURE"
   
   echo "🔄 Adding cache busting timestamps..."
   TIMESTAMP=$(date +%s)

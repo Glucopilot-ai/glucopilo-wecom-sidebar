@@ -10,7 +10,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/  # Commented out - was ignoring Flutter lib directory
 lib64/
 parts/
 sdist/
