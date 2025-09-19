@@ -181,8 +181,9 @@ app.*.symbols
 !**/ios/**/default.pbxuser
 !**/ios/**/default.perspectivev3
 
-# Web build output
-web/
+# Web build output (root level only, not Flutter templates)
+/web/
+frontend/build/
 
 # Environment variables
 .env
