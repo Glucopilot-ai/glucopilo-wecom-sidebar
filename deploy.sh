@@ -59,13 +59,16 @@ if [[ "$DEPLOY_TYPE" == "web" || "$DEPLOY_TYPE" == "full" ]]; then
   cd ..
   
   echo "🚀 Deploying web files to $REMOTE_HOST..."
-  rsync -avz --delete \
+  # Use rsync with single SSH connection, compatible with macOS
+  rsync -rlpt --progress --partial --timeout=60 --delete \
+    -e "ssh -o ControlMaster=no -o ControlPath=none" \
     "$LOCAL_FRONTEND_DIR/build/web/" "$REMOTE_HOST:$REMOTE_PATH/web/"
 fi
 
 if [[ "$DEPLOY_TYPE" == "api" || "$DEPLOY_TYPE" == "full" ]]; then
   echo "🐍 Deploying API files to $REMOTE_HOST..."
-  rsync -avz \
+  rsync -rlpt --progress --partial \
+    -e "ssh -o ControlMaster=no -o ControlPath=none" \
     --exclude='__pycache__' \
     --exclude='.venv' \
     --exclude='*.pyc' \
@@ -74,8 +77,8 @@ fi
 
 if [[ "$DEPLOY_TYPE" == "full" ]]; then
   echo "📦 Deploying configuration files..."
-  rsync -avz nginx/ "$REMOTE_HOST:$REMOTE_PATH/nginx/"
-  rsync -avz verify/ "$REMOTE_HOST:$REMOTE_PATH/verify/" 2>/dev/null || true
+  rsync -rlpt --progress nginx/ "$REMOTE_HOST:$REMOTE_PATH/nginx/"
+  rsync -rlpt --progress verify/ "$REMOTE_HOST:$REMOTE_PATH/verify/" 2>/dev/null || true
   
   echo "⚙️ Restarting services on remote server..."
   ssh "$REMOTE_HOST" "cd $REMOTE_PATH && \
