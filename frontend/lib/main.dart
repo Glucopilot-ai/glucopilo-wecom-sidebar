@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'wecom_js.dart';
+import 'diagnostic_page.dart';
 
 // Build signature for deployment tracking
 const String _buildSignature = String.fromEnvironment('BUILD_TIMESTAMP', defaultValue: 'dev-build');
@@ -161,9 +162,32 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: _initWeCom, 
-                  child: const Text("重新初始化")
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _initWeCom,
+                        child: const Text("重新初始化"),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const DiagnosticPage()),
+                          );
+                        },
+                        icon: const Icon(Icons.medical_services),
+                        label: const Text("诊断工具"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextField(
