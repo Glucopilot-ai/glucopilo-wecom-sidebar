@@ -16,6 +16,7 @@ WeCom-Sidebar is a Flutter web application with FastAPI backend that integrates 
   - Always provide detailed error messages to help pinpoint issues
   - Test early, catch issues before they propagate
 - **Gradual Implementation**: Incremental deployment with rollback capability
+- **Code Management**: Avoid create too many new files or version of script or functions
 
 ### 2. Service-First Architecture
 - **Backend Business Logic**: All complex logic in Python services (single source of truth)
@@ -70,9 +71,10 @@ cd api/ && python -m pytest tests/ --verbose
 cd api/ && python -m flake8 . --max-line-length=100
 ```
 
-### Deployment
+### Local to Remote Deployment
 ```bash
-./deploy.sh                     # Builds Flutter, copies to /home/wecom/web, restarts service
+./deploy.sh                     # Build locally, deploy to remote server
+./deploy.sh ubuntu@server.com   # Deploy to specific server
 ```
 
 ## Key Files and Structure

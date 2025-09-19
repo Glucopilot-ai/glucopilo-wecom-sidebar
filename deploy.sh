@@ -1,25 +1,84 @@
 #!/bin/bash
 set -e
 
-# Config
-FRONTEND_DIR="/home/wecom/frontend"
-WEB_DIR="/home/wecom/web"
+# Unified Deployment Script
+# Usage: 
+#   ./deploy.sh                    # Deploy web files only (dev mode)
+#   ./deploy.sh --api              # Deploy API files only  
+#   ./deploy.sh --full             # Full deployment with service restart
+#   ./deploy.sh --host ubuntu@server.com  # Specify different host
 
-echo "🚀 Building Flutter Web..."
-cd "$FRONTEND_DIR"
-flutter build web --release
+REMOTE_HOST="ubuntu@wecom.jianantech.com"
+REMOTE_PATH="/home/wecom"
+LOCAL_FRONTEND_DIR="./frontend"
+LOCAL_API_DIR="./api"
+DEPLOY_TYPE="web"
 
-echo "🔄 Deploying to $WEB_DIR..."
-sudo rm -rf "$WEB_DIR"
-sudo cp -r build/web "$WEB_DIR"
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --api)
+      DEPLOY_TYPE="api"
+      shift
+      ;;
+    --full)
+      DEPLOY_TYPE="full"
+      shift
+      ;;
+    --host)
+      REMOTE_HOST="$2"
+      shift 2
+      ;;
+    *)
+      REMOTE_HOST="$1"
+      shift
+      ;;
+  esac
+done
 
-echo "🔧 Setting permissions..."
-sudo chown -R ubuntu:www-data "$WEB_DIR"
-sudo find "$WEB_DIR" -type d -exec chmod 755 {} \;
-sudo find "$WEB_DIR" -type f -exec chmod 644 {} \;
+if [[ "$DEPLOY_TYPE" == "web" || "$DEPLOY_TYPE" == "full" ]]; then
+  echo "🔨 Building Flutter Web locally..."
+  cd "$LOCAL_FRONTEND_DIR"
+  flutter build web --release
+  
+  echo "🔄 Adding cache busting timestamps..."
+  TIMESTAMP=$(date +%s)
+  # Add timestamp to main script files for cache busting
+  sed -i.bak "s/flutter_bootstrap\.js/flutter_bootstrap.js?v=$TIMESTAMP/g" build/web/index.html
+  sed -i.bak "s/main\.dart\.js/main.dart.js?v=$TIMESTAMP/g" build/web/index.html
+  # Clean up backup files
+  rm -f build/web/index.html.bak
+  
+  cd ..
+  
+  echo "🚀 Deploying web files to $REMOTE_HOST..."
+  rsync -avz --delete \
+    "$LOCAL_FRONTEND_DIR/build/web/" "$REMOTE_HOST:$REMOTE_PATH/web/"
+fi
 
-echo "♻️ Restarting backend API..."
-sudo systemctl restart wecom-api
+if [[ "$DEPLOY_TYPE" == "api" || "$DEPLOY_TYPE" == "full" ]]; then
+  echo "🐍 Deploying API files to $REMOTE_HOST..."
+  rsync -avz \
+    --exclude='__pycache__' \
+    --exclude='.venv' \
+    --exclude='*.pyc' \
+    "$LOCAL_API_DIR/" "$REMOTE_HOST:$REMOTE_PATH/api/"
+fi
+
+if [[ "$DEPLOY_TYPE" == "full" ]]; then
+  echo "📦 Deploying configuration files..."
+  rsync -avz nginx/ "$REMOTE_HOST:$REMOTE_PATH/nginx/"
+  rsync -avz verify/ "$REMOTE_HOST:$REMOTE_PATH/verify/" 2>/dev/null || true
+  
+  echo "⚙️ Restarting services on remote server..."
+  ssh "$REMOTE_HOST" "cd $REMOTE_PATH && \
+    sudo chown -R ubuntu:www-data web/ && \
+    sudo find web/ -type d -exec chmod 755 {} \; && \
+    sudo find web/ -type f -exec chmod 644 {} \; && \
+    sudo systemctl restart wecom-api && \
+    sudo systemctl reload nginx"
+fi
 
 echo "✅ Deployment complete!"
+echo "🌐 Site: https://wecom.jianantech.com"
 

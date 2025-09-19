@@ -222,7 +222,7 @@ deploy_key*
 *.temp
 
 # WeCom verification files (these might be sensitive)
-# verify/WW_verify_*.txt
+verify/WW_verify_*.txt
 
 # Backup files
 *.bak
