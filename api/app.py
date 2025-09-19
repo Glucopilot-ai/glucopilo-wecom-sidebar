@@ -82,7 +82,7 @@ async def health():
     return {"ok": True, "ts": int(time.time())}
 
 
-@app.get("/api/diagnostics")
+@app.get("/diagnostics")
 async def diagnostics():
     """Comprehensive diagnostic endpoint for debugging WeCom integration"""
     diagnostics_result = {

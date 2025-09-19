@@ -14,6 +14,7 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
   final List<DiagnosticResult> _results = [];
   bool _isRunning = false;
   String _currentTest = "";
+  bool _showTextReport = false;
 
   @override
   void initState() {
@@ -373,6 +374,35 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
     }
   }
 
+  String _generateTextReport() {
+    final buffer = StringBuffer();
+    buffer.writeln("=== WeCom诊断报告 ===");
+    buffer.writeln("生成时间: ${DateTime.now()}");
+    buffer.writeln("总计: ${_results.length} 项测试");
+    buffer.writeln("通过: ${_results.where((r) => r.passed).length}");
+    buffer.writeln("失败: ${_results.where((r) => !r.passed).length}");
+    buffer.writeln("");
+    buffer.writeln("=== 测试结果 ===");
+
+    for (int i = 0; i < _results.length; i++) {
+      final result = _results[i];
+      buffer.writeln("");
+      buffer.writeln("${i + 1}. ${result.name}");
+      buffer.writeln("   状态: ${result.passed ? '✅ 通过' : '❌ 失败'}");
+      buffer.writeln("   详情: ${result.details}");
+
+      if (result.data != null) {
+        final dataStr = JsonEncoder.withIndent('     ').convert(result.data);
+        buffer.writeln("   数据:");
+        for (final line in dataStr.split('\n')) {
+          buffer.writeln("     $line");
+        }
+      }
+    }
+
+    return buffer.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final passedTests = _results.where((r) => r.passed).length;
@@ -420,9 +450,53 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
             ),
           ),
 
+          // Toggle for text view
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                const Text("显示格式: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                ChoiceChip(
+                  label: const Text("可视化"),
+                  selected: !_showTextReport,
+                  onSelected: (selected) {
+                    if (selected) setState(() => _showTextReport = false);
+                  },
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text("纯文本"),
+                  selected: _showTextReport,
+                  onSelected: (selected) {
+                    if (selected) setState(() => _showTextReport = true);
+                  },
+                ),
+              ],
+            ),
+          ),
+
           // Test Results
           Expanded(
-            child: ListView.builder(
+            child: _showTextReport
+                ? Container(
+                    margin: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: SingleChildScrollView(
+                      child: SelectableText(
+                        _generateTextReport(),
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  )
+                : ListView.builder(
               padding: const EdgeInsets.all(8),
               itemCount: _results.length,
               itemBuilder: (context, index) {
@@ -511,28 +585,13 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
   }
 
   void _copyReport() {
-    final buffer = StringBuffer();
-    buffer.writeln("=== WeCom诊断报告 ===");
-    buffer.writeln("生成时间: ${DateTime.now()}");
-    buffer.writeln("总计: ${_results.length} 项测试");
-    buffer.writeln("通过: ${_results.where((r) => r.passed).length}");
-    buffer.writeln("失败: ${_results.where((r) => !r.passed).length}");
-    buffer.writeln("");
-
-    for (final result in _results) {
-      buffer.writeln("[${result.passed ? '✅' : '❌'}] ${result.name}");
-      buffer.writeln("    详情: ${result.details}");
-      if (result.data != null) {
-        buffer.writeln("    数据: ${jsonEncode(result.data)}");
-      }
-      buffer.writeln("");
-    }
+    final report = _generateTextReport();
 
     // In real app, copy to clipboard
-    print(buffer.toString());
+    print(report);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("诊断报告已复制到剪贴板")),
+      const SnackBar(content: Text("诊断报告已复制到控制台（实际应用中会复制到剪贴板）")),
     );
   }
 }

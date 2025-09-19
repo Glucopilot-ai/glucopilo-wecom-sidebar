@@ -88,7 +88,16 @@ String wxSnapshot() {
       wxVersion = 'error getting version: $e';
     }
 
-    return 'wx type: $wxTypeInfo | config=$hasCfg agentConfig=$hasAgentCfg | version=$wxVersion';
+    // Get all available methods/properties for debugging
+    List<String> availableKeys = [];
+    try {
+      final keys = callMethod(context['Object'], 'keys', [w]) as List<dynamic>? ?? [];
+      availableKeys = keys.map((k) => k.toString()).toList();
+    } catch (e) {
+      availableKeys = ['<error getting keys: $e>'];
+    }
+
+    return 'wx type: $wxTypeInfo | config=$hasCfg agentConfig=$hasAgentCfg | version=$wxVersion | keys=[${availableKeys.join(', ')}]';
   } catch (e) {
     return 'wx snapshot error: $e';
   }
