@@ -5,11 +5,62 @@ bool hasWx() => context.hasProperty('wx');
 
 dynamic _wx() => context['wx'];
 
+dynamic _resolveJsMember(dynamic target, String name) {
+  dynamic current = target;
+  final visited = <int>{};
+
+  while (current != null) {
+    final id = identityHashCode(current);
+    if (visited.contains(id)) {
+      break;
+    }
+    visited.add(id);
+
+    try {
+      final value = getProperty(current, name);
+      if (value != null) {
+        return value;
+      }
+    } catch (_) {
+      // Ignore lookup errors and traverse the prototype chain.
+    }
+
+    dynamic next;
+    try {
+      next = getProperty(current, '__proto__');
+    } catch (_) {
+      next = null;
+    }
+    if (next != null) {
+      current = next;
+      continue;
+    }
+
+    try {
+      next = getProperty(current, 'prototype');
+    } catch (_) {
+      next = null;
+    }
+    if (next != null) {
+      current = next;
+      continue;
+    }
+
+    break;
+  }
+
+  return null;
+}
+
 bool hasWxMethod(String name) {
   final w = _wx();
   if (w == null) return false;
   try {
-    return hasProperty(w, name) && getProperty(w, name) != null;
+    final resolved = _resolveJsMember(w, name);
+    if (resolved == null) {
+      return false;
+    }
+    return resolved is JsFunction || resolved is Function;
   } catch (_) {
     return false;
   }
@@ -19,39 +70,25 @@ String wxSnapshot() {
   try {
     final w = _wx();
     if (w == null) return 'wx: <missing>';
-    
-    // Check if wx is a constructor function (not initialized)
+
     String wxTypeInfo = 'unknown';
     try {
-      final wxStr = w.toString();
-      if (wxStr.contains('function') && wxStr.contains('this.a=a')) {
-        wxTypeInfo = 'constructor-function (not initialized)';
-      } else {
-        wxTypeInfo = 'initialized-object';
-      }
+      wxTypeInfo = w.toString();
     } catch (e) {
-      wxTypeInfo = 'error checking type: $e';
+      wxTypeInfo = 'error reading type: $e';
     }
-    
-    List<dynamic> keys = [];
-    try {
-      keys = callMethod(context['Object'], 'keys', [w]) as List<dynamic>? ?? [];
-    } catch (e) {
-      keys = ['<keys error: $e>'];
-    }
-    
+
     final hasCfg = hasWxMethod('config');
     final hasAgentCfg = hasWxMethod('agentConfig');
-    
-    // Additional debugging info
+
     String wxVersion = 'unknown';
     try {
       wxVersion = getProperty(w, 'version')?.toString() ?? 'no version';
     } catch (e) {
       wxVersion = 'error getting version: $e';
     }
-    
-    return 'wx type: $wxTypeInfo | keys: ${keys.join(', ')} | config=$hasCfg agentConfig=$hasAgentCfg | version=$wxVersion';
+
+    return 'wx type: $wxTypeInfo | config=$hasCfg agentConfig=$hasAgentCfg | version=$wxVersion';
   } catch (e) {
     return 'wx snapshot error: $e';
   }

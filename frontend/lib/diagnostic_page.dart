@@ -79,14 +79,14 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
 
   Future<void> _testWeComSDK() async {
     try {
-      final hasWx = hasWx();
+      final sdkLoaded = hasWx();
       final snapshot = wxSnapshot();
 
       await _addResult(
         "WeCom SDK加载检测",
-        hasWx,
-        hasWx ? "✅ WeCom SDK已加载" : "❌ WeCom SDK未加载",
-        data: {"hasWx": hasWx, "snapshot": snapshot},
+        sdkLoaded,
+        sdkLoaded ? "✅ WeCom SDK已加载" : "❌ WeCom SDK未加载",
+        data: {"hasWx": sdkLoaded, "snapshot": snapshot},
       );
     } catch (e) {
       await _addResult("WeCom SDK加载检测", false, "❌ 检测失败: $e");
